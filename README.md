@@ -156,14 +156,14 @@ uv sync
 Ensure the ServiceNow MCP server is properly configured:
 ```bash
 # Path to ServiceNow MCP server
-***REMOVED***/repo/servicenow-mcp-dev/.venv/bin/python -m servicenow_mcp.cli
+***REMOVED***/***REMOVED***/repo/servicenow-mcp-dev/.venv/bin/python -m servicenow_mcp.cli
 ```
 
 #### GTI MCP Server
 Ensure the GTI MCP server is properly configured:
 ```bash
 # Path to GTI MCP server
-***REMOVED***/repo/mcp-security/server/gti/
+***REMOVED***/***REMOVED***/repo/mcp-security/server/gti/
 ```
 
 ### 4. Update Configuration
@@ -172,7 +172,7 @@ Modify the server paths in `7_multi_agent_with_mcp_handoff_guardrail` to match y
 # Update these paths in the main() function
 "command": "***REMOVED***/.local/bin/uv",
 "args": [
-    "--directory", "***REMOVED***/repo/mcp-security/server/gti/",
+    "--directory", "***REMOVED***/***REMOVED***/repo/mcp-security/server/gti/",
     # ... other args
 ]
 ```
