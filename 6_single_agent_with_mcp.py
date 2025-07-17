@@ -34,7 +34,7 @@ async def main():
             "command": "***REMOVED***/.local/bin/uv",
             "args": [
                 "--directory",
-                "***REMOVED***/repo/mcp-security/server/gti/",
+                "***REMOVED***/***REMOVED***/repo/mcp-security/server/gti/",
                 "run",
                 "--env-file",
                 "***REMOVED***/.env",
