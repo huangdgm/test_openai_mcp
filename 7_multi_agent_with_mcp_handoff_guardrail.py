@@ -11,9 +11,6 @@ The system consists of:
 - ServiceNow Agent: Queries ServiceNow platform via MCP server
 - GTI Agent: Queries Google Threat Intelligence via MCP server
 - Aggregator Agent: Combines and summarizes results from multiple sources
-
-Author: [Your Name]
-Date: [Current Date]
 """
 
 from dotenv import load_dotenv
@@ -481,7 +478,7 @@ async def main():
         params={
             "command": "***REMOVED***/.local/bin/uv",
             "args": [
-                "--directory", "***REMOVED***/repo/mcp-security/server/gti/",
+                "--directory", "***REMOVED***/***REMOVED***/repo/mcp-security/server/gti/",
                 "run",
                 "--env-file", "***REMOVED***/.env",
                 "gti_mcp/server.py"
@@ -492,7 +489,7 @@ async def main():
         params={
             "command": "***REMOVED***/.local/bin/uv",
             "args": [
-                "--directory", "***REMOVED***/repo/servicenow-mcp-dev/src/servicenow_mcp/",
+                "--directory", "***REMOVED***/***REMOVED***/repo/servicenow-mcp-dev/src/servicenow_mcp/",
                 "run",
                 "--env-file", "***REMOVED***/.env",
                 "cli.py"
