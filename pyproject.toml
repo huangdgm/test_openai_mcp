@@ -1,0 +1,11 @@
+[project]
+name = "test-openai-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp-server-fetch>=2025.4.7",
+    "openai-agents>=0.1.0",
+    "pip>=25.1.1",
+]
