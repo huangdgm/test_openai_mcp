@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from agents import Agent, Runner, gen_trace_id, trace
 from agents.mcp import MCPServer, MCPServerStdio
 import asyncio
+import time
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -384,9 +385,14 @@ async def run(gti_server: MCPServer, servicenow_server: MCPServer):
     This function implements the complete workflow:
     1. Guardrail check for sensitive information
     2. Service determination via orchestrator
-    3. Query execution against relevant services
+    3. Query execution against relevant services (with parallel execution for efficiency)
     4. Result aggregation and summarization
     5. Final result display
+    
+    Performance Optimization:
+    - When both ServiceNow and GTI queries are needed, they are executed in parallel
+    - This significantly reduces total processing time compared to sequential execution
+    - Timing information is logged to demonstrate the performance improvement
     
     Args:
         gti_server (MCPServer): The GTI MCP server instance
@@ -402,11 +408,11 @@ async def run(gti_server: MCPServer, servicenow_server: MCPServer):
     # test_queries = [
     #     "please summarize the latest news from Google threat intelligence platform that are related to Scattered Spider",
     #     "check ServiceNow for any recent incidents related to cybersecurity",
-    #     "find information about APT28 from both ServiceNow and threat intelligence sources"
+    #     "find all the security incident tickets that are assigned to 'coco liu' from both ServiceNow, check if those tickets have anything to do with 'scattered spider' according to google threat intelligence platform"
     # ]
 
     test_queries = [
-        "List all the security incidents in service now that are assigned to coco liu. Please provide the incident number, description, and status."
+        "find all the security incident tickets that are assigned to 'coco liu' from both ServiceNow, check if those tickets have anything to do with 'scattered spider' according to google threat intelligence platform"
     ]
     
     for i, message in enumerate(test_queries, 1):
@@ -428,15 +434,49 @@ async def run(gti_server: MCPServer, servicenow_server: MCPServer):
             required_services = await determine_required_services(message)
             print(f"📋 Required services: {required_services}")
             
-            # Step 3: Query relevant services
+            # Step 3: Query relevant services in parallel when both are needed
             servicenow_results = None
             gti_results = None
+            query_start_time = time.time()
             
-            if required_services.servicenow:
+            if required_services.servicenow and required_services.gti:
+                # PERFORMANCE OPTIMIZATION: Run both queries in parallel instead of sequentially
+                # This reduces total processing time from (ServiceNow_time + GTI_time) to max(ServiceNow_time, GTI_time)
+                print("🚀 Running ServiceNow and GTI queries in parallel...")
+                servicenow_task = query_servicenow(message, servicenow_server)
+                gti_task = query_gti(message, gti_server)
+                
+                results = await asyncio.gather(
+                    servicenow_task, 
+                    gti_task,
+                    return_exceptions=True
+                )
+                
+                # Handle any exceptions that occurred during parallel execution
+                if isinstance(results[0], Exception):
+                    print(f"❌ ServiceNow query failed: {results[0]}")
+                    servicenow_results: Optional[List[ServiceNowQuery]] = None
+                else:
+                    servicenow_results = results[0]  # type: ignore
+                    
+                if isinstance(results[1], Exception):
+                    print(f"❌ GTI query failed: {results[1]}")
+                    gti_results: Optional[List[GTIQuery]] = None
+                else:
+                    gti_results = results[1]  # type: ignore
+                    
+                query_time = time.time() - query_start_time
+                print(f"⏱️  Parallel queries completed in {query_time:.2f} seconds")
+                    
+            elif required_services.servicenow:
                 servicenow_results = await query_servicenow(message, servicenow_server)
+                query_time = time.time() - query_start_time
+                print(f"⏱️  ServiceNow query completed in {query_time:.2f} seconds")
             
-            if required_services.gti:
+            elif required_services.gti:
                 gti_results = await query_gti(message, gti_server)
+                query_time = time.time() - query_start_time
+                print(f"⏱️  GTI query completed in {query_time:.2f} seconds")
             
             # Step 4: Aggregate results
             final_result = await aggregate_results(message, servicenow_results, gti_results)
