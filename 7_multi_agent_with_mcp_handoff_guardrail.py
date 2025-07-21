@@ -21,6 +21,15 @@ import time
 from pydantic import BaseModel
 from typing import List, Optional
 
+# Import agent configs
+from agent_configs import (
+    SERVICENOW_AGENT_CONFIG,
+    GTI_AGENT_CONFIG,
+    GUARDRAIL_AGENT_CONFIG,
+    ORCHESTRATOR_AGENT_CONFIG,
+    AGGREGATOR_AGENT_CONFIG
+)
+
 load_dotenv()
 
 
@@ -98,103 +107,45 @@ class ServiceDecision(BaseModel):
 
 # Guardrail agent to check for sensitive information
 guardrail_agent = Agent(
-    name="Guardrail Check",
-    instructions="""Check if the user prompt contains sensitive information that should NOT be processed.
-    
-    This is an INTERNAL application, so the following are ACCEPTABLE:
-    - Names of employees or users (e.g., "coco liu", "john smith")
-    - Internal system names, IP addresses, or URLs
-    - ServiceNow ticket numbers, incident IDs
-    - Internal project names or team names
-    
-    ONLY flag as sensitive if the prompt contains:
-    - Passwords, API keys, tokens, or credentials
-    - Private keys, SSH keys, or cryptographic material
-    - Database connection strings with passwords
-    - Authentication tokens or session cookies
-    - Any other authentication/authorization secrets
-    
-    Be conservative - only flag if there are clear credentials or secrets present.
-    Names and internal identifiers are fine for this internal application.""",
+    name=GUARDRAIL_AGENT_CONFIG["name"],
+    instructions=GUARDRAIL_AGENT_CONFIG["instructions"],
     output_type=HasSensitiveInformation,
-    model="gpt-4o-mini"
-)
-
-# ServiceNow specialist agent
-servicenow_agent = Agent(
-    name="ServiceNow Specialist",
-    handoff_description="Specialist agent for querying SparkNZ ServiceNow platform",
-    instructions="""You are a ServiceNow specialist agent. Your responsibilities include:
-    - Querying ServiceNow for incident information, tickets, and system data
-    - Providing detailed analysis of ServiceNow records
-    - Extracting relevant information from ServiceNow responses
-    - Formatting results in a clear, structured manner
-    
-    Always use the available ServiceNow tools to ensure you provide comprehensive and accurate information from ServiceNow.""",
-    model="gpt-4o-mini"
-)
-
-# Google Threat Intelligence specialist agent
-gti_agent = Agent(
-    name="GTI Specialist",
-    handoff_description="Specialist agent for querying Google Threat Intelligence platform",
-    instructions="""You are a Google Threat Intelligence specialist agent. Your responsibilities include:
-    - Querying GTI for threat actor information, indicators, and intelligence
-    - Analyzing threat intelligence data and providing insights
-    - Searching for specific threat actors, malware, or attack patterns
-    - Providing detailed threat analysis and context
-    
-    Always use the available GTI tools to gather comprehensive threat intelligence information from GTI.""",
-    model="gpt-4o-mini"
+    model=GUARDRAIL_AGENT_CONFIG["model"]
 )
 
 # Orchestrator agent to determine which services to query
 orchestrator_agent = Agent(
-    name="Orchestrator",
-    instructions="""You are an orchestrator agent that determines which specialized agents should handle a user query.
-    
-    Analyze the user's request and determine if it requires:
-    1. ServiceNow data (incidents, tickets, system information, etc.)
-    2. Threat Intelligence data (threat actors, indicators, malware, etc.)
-    3. Both services
-    
-    Consider keywords and context:
-    - ServiceNow: incidents, tickets, cases, service desk, ITIL, etc.
-    - GTI: threat actors, malware, indicators, APT, cyber threats, etc.
-    
-    IMPORTANT: You must respond with a JSON object in this exact format:
-    {
-        "servicenow": true/false,
-        "gti": true/false,
-        "reasoning": "Detailed explanation of why each service is needed or not needed"
-    }
-    
-    Example responses:
-    - For ServiceNow only: {"servicenow": true, "gti": false, "reasoning": "Query asks for incident information which is stored in ServiceNow"}
-    - For GTI only: {"servicenow": false, "gti": true, "reasoning": "Query asks for threat intelligence about specific threat actors"}
-    - For both: {"servicenow": true, "gti": true, "reasoning": "Query asks for both incident data and threat intelligence information"}
-    
-    Always provide clear reasoning for your decision.""",
+    name=ORCHESTRATOR_AGENT_CONFIG["name"],
+    instructions=ORCHESTRATOR_AGENT_CONFIG["instructions"],
     output_type=ServiceDecision,
-    model="gpt-4o-mini"
+    model=ORCHESTRATOR_AGENT_CONFIG["model"]
 )
 
 # Aggregator agent to process and combine results
 aggregator_agent = Agent(
-    name="Result Aggregator",
-    instructions="""You are an aggregator agent that processes and combines results from multiple specialized agents.
-    
-    Your responsibilities:
-    1. Analyze results from ServiceNow and/or GTI agents
-    2. Identify key insights and patterns across different data sources
-    3. Create a comprehensive summary that addresses the original user query
-    4. Provide actionable recommendations based on the combined intelligence
-    5. Ensure the final output is well-structured and easy to understand
-    
-    Focus on connecting dots between different data sources and providing valuable insights.""",
+    name=AGGREGATOR_AGENT_CONFIG["name"],
+    instructions=AGGREGATOR_AGENT_CONFIG["instructions"],
     output_type=AggregatedResult,
-    model="gpt-4o-mini"
+    model=AGGREGATOR_AGENT_CONFIG["model"]
 )
+
+# Factory functions for specialist agents
+
+def make_servicenow_agent(mcp_server):
+    return Agent(
+        name=SERVICENOW_AGENT_CONFIG["name"],
+        instructions=SERVICENOW_AGENT_CONFIG["instructions"],
+        model=SERVICENOW_AGENT_CONFIG["model"],
+        mcp_servers=[mcp_server]
+    )
+
+def make_gti_agent(mcp_server):
+    return Agent(
+        name=GTI_AGENT_CONFIG["name"],
+        instructions=GTI_AGENT_CONFIG["instructions"],
+        model=GTI_AGENT_CONFIG["model"],
+        mcp_servers=[mcp_server]
+    )
 
 
 async def check_guardrails(user_query: str) -> HasSensitiveInformation:
@@ -281,12 +232,7 @@ async def query_servicenow(user_query: str, mcp_server: MCPServer) -> List[Servi
     print("🔍 Querying ServiceNow...")
     
     # Create ServiceNow agent with MCP server
-    servicenow_agent_with_mcp = Agent(
-        name="ServiceNow Specialist",
-        instructions=servicenow_agent.instructions,
-        model="gpt-4o-mini",
-        mcp_servers=[mcp_server]
-    )
+    servicenow_agent_with_mcp = make_servicenow_agent(mcp_server)
     
     servicenow_result = await Runner.run(servicenow_agent_with_mcp, user_query)
     
@@ -319,12 +265,7 @@ async def query_gti(user_query: str, mcp_server: MCPServer) -> List[GTIQuery]:
     print("🔍 Querying Google Threat Intelligence...")
     
     # Create GTI agent with MCP server
-    gti_agent_with_mcp = Agent(
-        name="GTI Specialist",
-        instructions=gti_agent.instructions,
-        model="gpt-4o-mini",
-        mcp_servers=[mcp_server]
-    )
+    gti_agent_with_mcp = make_gti_agent(mcp_server)
     
     gti_result = await Runner.run(gti_agent_with_mcp, user_query)
     
@@ -516,22 +457,22 @@ async def main():
     async with MCPServerStdio(
         name="GTI Server",
         params={
-            "command": "***REMOVED***/.local/bin/uv",
+            "command": "/Users/t832948/.local/bin/uv",
             "args": [
-                "--directory", "***REMOVED***/***REMOVED***/repo/mcp-security/server/gti/",
+                "--directory", "/Users/t832948/dong/repo/mcp-security/server/gti/",
                 "run",
-                "--env-file", "***REMOVED***/.env",
+                "--env-file", "/Users/t832948/.env",
                 "gti_mcp/server.py"
             ]
         }
     ) as gti_server, MCPServerStdio(
         name="ServiceNow Server",
         params={
-            "command": "***REMOVED***/.local/bin/uv",
+            "command": "/Users/t832948/.local/bin/uv",
             "args": [
-                "--directory", "***REMOVED***/***REMOVED***/repo/servicenow-mcp-dev/src/servicenow_mcp/",
+                "--directory", "/Users/t832948/dong/repo/servicenow-mcp-dev/src/servicenow_mcp/",
                 "run",
-                "--env-file", "***REMOVED***/.env",
+                "--env-file", "/Users/t832948/.env",
                 "cli.py"
             ]
         }
