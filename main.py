@@ -21,16 +21,47 @@ import time
 from pydantic import BaseModel
 from typing import List, Optional
 
-# Import agent configs
-from agent_configs import (
-    SERVICENOW_AGENT_CONFIG,
-    GTI_AGENT_CONFIG,
-    GUARDRAIL_AGENT_CONFIG,
-    ORCHESTRATOR_AGENT_CONFIG,
-    AGGREGATOR_AGENT_CONFIG
+# Azure OpenAI imports
+import os
+from openai import AsyncAzureOpenAI
+from agents import OpenAIChatCompletionsModel
+
+# Configuration management
+from config.config_manager import config_manager
+
+# Load default .env file first to get the environment type, e.g. development, staging, production, etc.
+load_dotenv(dotenv_path=os.path.expanduser(f"~/.env"))
+
+if os.getenv("ENV") is None:
+    raise ValueError("ENV environment variable is required, please set it in the .env file. It will be default to 'development' if not set.")
+
+# Load configuration from yaml file(s) based on the environment type, and store the configs in config_manager
+config_manager.load_config()
+
+# Load environment-specific .env file based on the environment type
+# The .env.{environment} contains the environment-specific API keys, etc.
+load_dotenv(dotenv_path=os.path.expanduser(f"~/.env.{config_manager.environment}"), override=True)
+
+# Initialize Azure OpenAI client
+azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+api_key = os.getenv("AZURE_OPENAI_API_KEY")
+
+if azure_endpoint is None:
+    raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is required")
+if api_key is None:
+    raise ValueError("AZURE_OPENAI_API_KEY environment variable is required")
+
+azure_openai_client = AsyncAzureOpenAI(
+    api_key=api_key,
+    api_version=config_manager.get("azure_openai.api_version"),
+    azure_endpoint=azure_endpoint,
+    azure_deployment=config_manager.get("azure_openai.azure_deployment")
 )
 
-load_dotenv()
+azure_openai_model = OpenAIChatCompletionsModel(
+    model=config_manager.get("azure_openai.model"),
+    openai_client=azure_openai_client
+)
 
 
 class HasSensitiveInformation(BaseModel):
@@ -106,44 +137,49 @@ class ServiceDecision(BaseModel):
 
 
 # Guardrail agent to check for sensitive information
+guardrail_config = config_manager.get("agents.guardrail")
 guardrail_agent = Agent(
-    name=GUARDRAIL_AGENT_CONFIG["name"],
-    instructions=GUARDRAIL_AGENT_CONFIG["instructions"],
+    name=guardrail_config["name"],
+    instructions=guardrail_config["instructions"],
     output_type=HasSensitiveInformation,
-    model=GUARDRAIL_AGENT_CONFIG["model"]
+    model=azure_openai_model
 )
 
 # Orchestrator agent to determine which services to query
+orchestrator_config = config_manager.get("agents.orchestrator")
 orchestrator_agent = Agent(
-    name=ORCHESTRATOR_AGENT_CONFIG["name"],
-    instructions=ORCHESTRATOR_AGENT_CONFIG["instructions"],
+    name=orchestrator_config["name"],
+    instructions=orchestrator_config["instructions"],
     output_type=ServiceDecision,
-    model=ORCHESTRATOR_AGENT_CONFIG["model"]
+    model=azure_openai_model
 )
 
 # Aggregator agent to process and combine results
+aggregator_config = config_manager.get("agents.aggregator")
 aggregator_agent = Agent(
-    name=AGGREGATOR_AGENT_CONFIG["name"],
-    instructions=AGGREGATOR_AGENT_CONFIG["instructions"],
+    name=aggregator_config["name"],
+    instructions=aggregator_config["instructions"],
     output_type=AggregatedResult,
-    model=AGGREGATOR_AGENT_CONFIG["model"]
+    model=azure_openai_model
 )
 
 # Factory functions for specialist agents
 
 def make_servicenow_agent(mcp_server):
+    servicenow_config = config_manager.get("agents.servicenow")
     return Agent(
-        name=SERVICENOW_AGENT_CONFIG["name"],
-        instructions=SERVICENOW_AGENT_CONFIG["instructions"],
-        model=SERVICENOW_AGENT_CONFIG["model"],
+        name=servicenow_config["name"],
+        instructions=servicenow_config["instructions"],
+        model=azure_openai_model,
         mcp_servers=[mcp_server]
     )
 
 def make_gti_agent(mcp_server):
+    gti_config = config_manager.get("agents.gti")
     return Agent(
-        name=GTI_AGENT_CONFIG["name"],
-        instructions=GTI_AGENT_CONFIG["instructions"],
-        model=GTI_AGENT_CONFIG["model"],
+        name=gti_config["name"],
+        instructions=gti_config["instructions"],
+        model=azure_openai_model,
         mcp_servers=[mcp_server]
     )
 
@@ -453,28 +489,22 @@ async def main():
     """
     print("🔧 Starting MCP servers...")
     
+    # Get MCP server configurations
+    gti_server_config = config_manager.get("mcp_servers.gti")
+    servicenow_server_config = config_manager.get("mcp_servers.servicenow")
+    
     # Start both GTI and ServiceNow MCP servers
     async with MCPServerStdio(
-        name="GTI Server",
+        name=gti_server_config["name"],
         params={
-            "command": "/Users/t832948/.local/bin/uv",
-            "args": [
-                "--directory", "/Users/t832948/dong/repo/mcp-security/server/gti/",
-                "run",
-                "--env-file", "/Users/t832948/.env",
-                "gti_mcp/server.py"
-            ]
+            "command": gti_server_config["command"],
+            "args": gti_server_config["args"]
         }
     ) as gti_server, MCPServerStdio(
-        name="ServiceNow Server",
+        name=servicenow_server_config["name"],
         params={
-            "command": "/Users/t832948/.local/bin/uv",
-            "args": [
-                "--directory", "/Users/t832948/dong/repo/servicenow-mcp-dev/src/servicenow_mcp/",
-                "run",
-                "--env-file", "/Users/t832948/.env",
-                "cli.py"
-            ]
+            "command": servicenow_server_config["command"],
+            "args": servicenow_server_config["args"]
         }
     ) as servicenow_server:
         print("✅ MCP servers started successfully!")

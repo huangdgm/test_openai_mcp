@@ -8,4 +8,7 @@ dependencies = [
     "mcp-server-fetch>=2025.4.7",
     "openai-agents>=0.1.0",
     "pip>=25.1.1",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0.0",
+    "openai>=1.0.0",
 ]

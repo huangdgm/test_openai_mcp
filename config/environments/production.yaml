@@ -1,0 +1,40 @@
+# Production environment configuration
+# Extends base.yaml with production-specific settings
+
+# Production Azure OpenAI settings
+azure_openai:
+  api_version: "2025-01-01-preview"
+  azure_deployment: "gpt-4o"  # Use full model for production
+  model: "gpt-4o"
+
+# Production-specific MCP server settings
+mcp_servers:
+  gti:
+    name: "GTI Server (Prod)"
+    command: "/usr/local/bin/uv"  # Production path
+    args:
+      - "--directory"
+      - "/PATH/TO/gti/"
+      - "run"
+      - "--env-file"
+      - "/PATH/TO/.env.prod"
+      - "gti_mcp/server.py"
+
+  servicenow:
+    name: "ServiceNow Server (Prod)"
+    command: "/PATH/TO/uv"  # Production path
+    args:
+      - "--directory"
+      - "/PATH/TO/servicenow_mcp/"
+      - "run"
+      - "--env-file"
+      - "/PATH/TO/.env.prod"
+      - "cli.py"
+
+# Production-specific settings
+production:
+  debug: false
+  log_level: "INFO"
+  enable_tracing: true
+  max_retries: 3
+  timeout: 30 

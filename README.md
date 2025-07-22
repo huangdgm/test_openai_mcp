@@ -176,7 +176,7 @@ Ensure the GTI MCP server is properly configured:
 ```
 
 ### 4. Update Configuration
-Modify the server paths in `7_multi_agent_with_mcp_handoff_guardrail` to match your environment:
+Modify the server paths in `main.py` to match your environment:
 ```python
 # Update these paths in the main() function
 "command": "***REMOVED***/.local/bin/uv",
@@ -190,7 +190,7 @@ Modify the server paths in `7_multi_agent_with_mcp_handoff_guardrail` to match y
 
 ### Basic Usage
 ```bash
-python 7_multi_agent_with_mcp_handoff_guardrail
+python main.py
 ```
 
 ### Example Queries
