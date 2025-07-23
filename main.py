@@ -389,7 +389,7 @@ async def run(gti_server: MCPServer, servicenow_server: MCPServer):
     # ]
 
     test_queries = [
-        "find all the security incident tickets that are assigned to 'coco liu' from both ServiceNow, check if those tickets have anything to do with 'scattered spider' according to google threat intelligence platform"
+        "find the latest 3 security incident tickets, no matter what the status is, that are assigned to 'coco liu' in ServiceNow. Make sure to use 'list_security_incidents' tool to query service now instead of using 'list_incidents' tool."
     ]
     
     for i, message in enumerate(test_queries, 1):
@@ -489,22 +489,18 @@ async def main():
     """
     print("🔧 Starting MCP servers...")
     
-    # Get MCP server configurations
-    gti_server_config = config_manager.get("mcp_servers.gti")
-    servicenow_server_config = config_manager.get("mcp_servers.servicenow")
-    
     # Start both GTI and ServiceNow MCP servers
     async with MCPServerStdio(
-        name=gti_server_config["name"],
+        name=config_manager.get("mcp_servers.gti.name"),
         params={
-            "command": gti_server_config["command"],
-            "args": gti_server_config["args"]
+            "command": config_manager.get("mcp_servers.gti.command"),
+            "args": config_manager.get("mcp_servers.gti.args")
         }
     ) as gti_server, MCPServerStdio(
-        name=servicenow_server_config["name"],
+        name=config_manager.get("mcp_servers.servicenow.name"),
         params={
-            "command": servicenow_server_config["command"],
-            "args": servicenow_server_config["args"]
+            "command": config_manager.get("mcp_servers.servicenow.command"),
+            "args": config_manager.get("mcp_servers.servicenow.args")
         }
     ) as servicenow_server:
         print("✅ MCP servers started successfully!")

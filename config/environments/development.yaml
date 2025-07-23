@@ -1,25 +1,7 @@
 # Development environment configuration
 # Extends base.yaml with development-specific settings
 
-# Override Azure OpenAI settings for development
-azure_openai:
-  api_version: "2025-01-01-preview"
-  azure_deployment: "gpt-4o-mini"  # Use cheaper model for development
-  model: "gpt-4o-mini"
-
-# Development-specific MCP server settings
 mcp_servers:
-  gti:
-    name: "GTI Server (Dev)"
-    command: "/PATH/TO/.local/bin/uv"
-    args:
-      - "--directory"
-      - "/PATH/TO/mcp-security/server/gti/"
-      - "run"
-      - "--env-file"
-      - "/PATH/TO/.env.development"  # Use dev-specific env file
-      - "gti_mcp/server.py"
-
   servicenow:
     name: "ServiceNow Server (Dev)"
     command: "/PATH/TO/.local/bin/uv"
