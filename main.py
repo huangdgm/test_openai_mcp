@@ -104,22 +104,44 @@ class GTIQuery(BaseModel):
     source: str = "Google Threat Intelligence"
 
 
-class AggregatedResult(BaseModel):
+class VisualizationResult(BaseModel):
     """
-    Model representing the final aggregated result from multiple sources.
+    A Pydantic model representing the result of a visualization analysis.
+    
+    This model is used by the visualization agent to structure its output when
+    analyzing data from ServiceNow and/or Google Threat Intelligence sources.
+    The agent generates a summary of findings, determines the best visualization
+    type, and provides code snippets for creating the visualization.
     
     Attributes:
-        original_query (str): The original user query
-        servicenow_results (Optional[List[ServiceNowQuery]]): Results from ServiceNow queries
-        gti_results (Optional[List[GTIQuery]]): Results from GTI queries
-        summary (str): Comprehensive summary of all results
-        recommendations (Optional[List[str]]): Actionable recommendations based on findings
+        summary (str): A natural language summary of the key findings from the data analysis.
+                       This should provide insights and context about the data being visualized.
+        
+        visualization_type (str): The recommended type of visualization for the data.
+                                 Examples include: 'bar', 'pie', 'line', 'scatter', 'table',
+                                 'timeline', 'heatmap', etc.
+        
+        code_snippet (str): Python code or markdown that can be used to generate the
+                           visualization. This may include matplotlib, pandas, or other
+                           visualization library code. Defaults to empty string if no
+                           code is needed.
+    
+    Example:
+        ```python
+        result = VisualizationResult(
+            summary="Found 3 security incidents assigned to Coco Liu and 1 to Rodel Rojos",
+            visualization_type="bar",
+            code_snippet="import matplotlib.pyplot as plt\\nplt.bar(['Coco Liu', 'Rodel Rojos'], [3, 1])"
+        )
+        ```
+    
+    Note:
+        This model is designed to work with the openai-agents package's strict JSON
+        schema validation. All fields use simple default values to avoid validation issues.
     """
-    original_query: str
-    servicenow_results: Optional[List[ServiceNowQuery]] = None
-    gti_results: Optional[List[GTIQuery]] = None
     summary: str
-    recommendations: Optional[List[str]] = None
+    visualization_type: str
+    code_snippet: str = ""
 
 
 class ServiceDecision(BaseModel):
@@ -137,29 +159,26 @@ class ServiceDecision(BaseModel):
 
 
 # Guardrail agent to check for sensitive information
-guardrail_config = config_manager.get("agents.guardrail")
 guardrail_agent = Agent(
-    name=guardrail_config["name"],
-    instructions=guardrail_config["instructions"],
+    name=config_manager.get("agents.guardrail.name"),
+    instructions=config_manager.get("agents.guardrail.instructions"),
     output_type=HasSensitiveInformation,
     model=azure_openai_model
 )
 
 # Orchestrator agent to determine which services to query
-orchestrator_config = config_manager.get("agents.orchestrator")
 orchestrator_agent = Agent(
-    name=orchestrator_config["name"],
-    instructions=orchestrator_config["instructions"],
+    name=config_manager.get("agents.orchestrator.name"),
+    instructions=config_manager.get("agents.orchestrator.instructions"),
     output_type=ServiceDecision,
     model=azure_openai_model
 )
 
-# Aggregator agent to process and combine results
-aggregator_config = config_manager.get("agents.aggregator")
-aggregator_agent = Agent(
-    name=aggregator_config["name"],
-    instructions=aggregator_config["instructions"],
-    output_type=AggregatedResult,
+# Visualization agent to process and generate visualizations
+visualization_agent = Agent(
+    name=config_manager.get("agents.visualization.name"),
+    instructions=config_manager.get("agents.visualization.instructions"),
+    output_type=VisualizationResult,
     model=azure_openai_model
 )
 
@@ -312,30 +331,59 @@ async def query_gti(user_query: str, mcp_server: MCPServer) -> List[GTIQuery]:
     )]
 
 
-async def aggregate_results(user_query: str, servicenow_results: Optional[List[ServiceNowQuery]], 
-                          gti_results: Optional[List[GTIQuery]]) -> AggregatedResult:
+async def visualize_results(user_query: str, servicenow_results: Optional[List[ServiceNowQuery]], 
+                    gti_results: Optional[List[GTIQuery]]) -> VisualizationResult:
     """
-    Aggregate and process results from all agents into a comprehensive summary.
+    Generate a visualization and summary from ServiceNow and/or GTI query results.
     
-    This function combines results from ServiceNow and GTI queries and uses
-    the aggregator agent to create a unified summary with recommendations.
+    This function processes the results from ServiceNow and Google Threat Intelligence
+    queries and uses the visualization agent to create a structured analysis with
+    summary, visualization type recommendation, and code snippets for generating
+    the visualization.
+    
+    The function prepares a context containing the original query and all available
+    results, then delegates the analysis to the visualization agent which has
+    specialized instructions for data analysis and visualization generation.
     
     Args:
-        user_query (str): The original user query
-        servicenow_results (Optional[List[ServiceNowQuery]]): Results from ServiceNow queries
-        gti_results (Optional[List[GTIQuery]]): Results from GTI queries
-        
-    Returns:
-        AggregatedResult: Object containing summary and recommendations
-        
-    Example:
-        >>> final_result = await aggregate_results("find threats", sn_results, gti_results)
-        >>> print(final_result.summary)  # Combined summary
-        >>> print(final_result.recommendations)  # Action items
-    """
-    print("📊 Aggregating results...")
+        user_query (str): The original user query that was processed
+        servicenow_results (Optional[List[ServiceNowQuery]]): Results from ServiceNow queries.
+                                                             Can be None if no ServiceNow data was retrieved.
+        gti_results (Optional[List[GTIQuery]]): Results from Google Threat Intelligence queries.
+                                               Can be None if no GTI data was retrieved.
     
-    # Prepare context for aggregator
+    Returns:
+        VisualizationResult: A structured result containing:
+            - summary: Natural language summary of key findings
+            - visualization_type: Recommended visualization type (e.g., 'bar', 'pie', 'table')
+            - code_snippet: Python code or markdown for generating the visualization
+    
+    Example:
+        ```python
+        # With both ServiceNow and GTI results
+        result = await visualize_results(
+            user_query="Find incidents related to APT28",
+            servicenow_results=[ServiceNowQuery(query="...", result="3 incidents found")],
+            gti_results=[GTIQuery(query="...", result="APT28 threat intelligence")]
+        )
+        
+        # With only ServiceNow results
+        result = await visualize_results(
+            user_query="List security incidents",
+            servicenow_results=[ServiceNowQuery(query="...", result="5 incidents found")],
+            gti_results=None
+        )
+        ```
+    
+    Note:
+        The visualization agent uses its own instructions from the configuration
+        to determine how to analyze the data and generate appropriate visualizations.
+        The agent will automatically handle cases where only one type of result
+        is available or when no results are provided.
+    """
+    print("📊 Generating visualization...")
+
+    # Prepare context for visualization agent
     context = f"Original Query: {user_query}\n\n"
     if servicenow_results:
         context += "ServiceNow Results:\n"
@@ -348,10 +396,8 @@ async def aggregate_results(user_query: str, servicenow_results: Optional[List[S
         for result in gti_results:
             context += f"- {result.result}\n"
         context += "\n"
-    
-    context += "Please provide a comprehensive summary and recommendations based on all available information."
-    
-    result = await Runner.run(aggregator_agent, context)
+
+    result = await Runner.run(visualization_agent, context)
     return result.final_output
 
 
@@ -384,12 +430,12 @@ async def run(gti_server: MCPServer, servicenow_server: MCPServer):
     # Example queries for testing
     # test_queries = [
     #     "please summarize the latest news from Google threat intelligence platform that are related to Scattered Spider",
-    #     "check ServiceNow for any recent incidents related to cybersecurity",
+    #     "find the latest 3 security incident tickets, no matter what the status is, that are assigned to 'coco liu' in ServiceNow. Make sure to use 'list_security_incidents' tool to query service now instead of using 'list_incidents' tool.",
     #     "find all the security incident tickets that are assigned to 'coco liu' from both ServiceNow, check if those tickets have anything to do with 'scattered spider' according to google threat intelligence platform"
     # ]
 
     test_queries = [
-        "find the latest 3 security incident tickets, no matter what the status is, that are assigned to 'coco liu' in ServiceNow. Make sure to use 'list_security_incidents' tool to query service now instead of using 'list_incidents' tool."
+        "count the number of security incident tickets in all the time, no matter what the status is, that are assigned to 'coco liu' and 'rodel rojos' respectively in ServiceNow. When you try to get the list of security incidents, please use the limit of 10 instead of 1."
     ]
     
     for i, message in enumerate(test_queries, 1):
@@ -455,16 +501,15 @@ async def run(gti_server: MCPServer, servicenow_server: MCPServer):
                 query_time = time.time() - query_start_time
                 print(f"⏱️  GTI query completed in {query_time:.2f} seconds")
             
-            # Step 4: Aggregate results
-            final_result = await aggregate_results(message, servicenow_results, gti_results)
-            
+            # Step 4: Generate visualization
+            final_result = await visualize_results(message, servicenow_results, gti_results)
+
             # Step 5: Display final result
             print(f"\n📋 Final Result:")
             print(f"Summary: {final_result.summary}")
-            if final_result.recommendations:
-                print(f"Recommendations:")
-                for rec in final_result.recommendations:
-                    print(f"- {rec}")
+            print(f"Visualization Type: {final_result.visualization_type}")
+            if final_result.code_snippet:
+                print(f"Code Snippet:\n{final_result.code_snippet}")
             
         except Exception as e:
             print(f"❌ Error processing query: {str(e)}")

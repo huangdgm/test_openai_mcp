@@ -32,9 +32,16 @@ The system implements a microservices-style architecture with specialized AI age
                                           │
                                           ▼
                               ┌─────────────────┐
+                              │  Visualization  │
+                              │  Agent          │
+                              └─────────────────┘
+                                          │
+                                          ▼
+                              ┌─────────────────┐
                               │  Final Result   │
                               │  + Summary      │
-                              │  + Recommendations│
+                              │  + Visualization│
+                              │  + Code Snippet │
                               └─────────────────┘
 ```
 
@@ -82,6 +89,16 @@ The system implements a microservices-style architecture with specialized AI age
   - Provides actionable recommendations
 - **Model**: GPT-4o-mini
 
+### 6. **Visualization Agent** 📈
+- **Purpose**: Generates visualizations and code snippets for data presentation
+- **Capabilities**:
+  - Analyzes data from ServiceNow and GTI sources
+  - Determines optimal visualization types
+  - Provides Python code snippets for creating visualizations
+  - Generates natural language summaries of findings
+- **Model**: GPT-4o-mini
+- **Output**: Structured `VisualizationResult` with summary, visualization type, and code snippet
+
 ## 🚀 Features
 
 ### ✅ **Intelligent Service Routing**
@@ -108,6 +125,12 @@ The system implements a microservices-style architecture with specialized AI age
 - Graceful error handling
 - OpenAI tracing integration
 - Detailed logging and debugging
+
+### ✅ **Pydantic Data Validation** 🔒
+- Structured data models with type safety
+- Automatic JSON schema generation for LLMs
+- Validation of agent outputs against defined schemas
+- Clear error messages for malformed data
 
 ### ✅ **Performance Optimization** ⚡
 - **Parallel Execution**: ServiceNow and GTI queries run concurrently when both are needed
@@ -226,6 +249,8 @@ test_queries = [
 
 ## 📊 Data Models
 
+The system uses **Pydantic models** for structured data validation and type safety. All agent outputs are validated against these models to ensure data integrity and provide clear error messages.
+
 ### ServiceDecision
 ```python
 class ServiceDecision(BaseModel):
@@ -250,6 +275,21 @@ class HasSensitiveInformation(BaseModel):
     has_sensitive_information: bool
     reasoning: str
 ```
+
+### VisualizationResult
+```python
+class VisualizationResult(BaseModel):
+    summary: str
+    visualization_type: str
+    code_snippet: str = ""
+```
+
+**Purpose**: Used by the visualization agent to structure its output when analyzing data from ServiceNow and/or Google Threat Intelligence sources.
+
+**Fields**:
+- `summary`: Natural language summary of key findings from data analysis
+- `visualization_type`: Recommended visualization type (e.g., 'bar', 'pie', 'line', 'table')
+- `code_snippet`: Python code or markdown for generating the visualization
 
 ## 🔧 Configuration
 
@@ -415,6 +455,14 @@ The system provides detailed logging at each step:
 
 ## 🔄 Version History
 
+### v1.2.0 - Pydantic Integration & Visualization Release
+- **Pydantic Models**: Implemented structured data validation with Pydantic models
+- **Visualization Agent**: Added specialized agent for generating data visualizations
+- **Type Safety**: All agent outputs now validated against defined schemas
+- **JSON Schema Generation**: Automatic schema generation for LLM interactions
+- **Enhanced Data Models**: Added `VisualizationResult` model with comprehensive documentation
+- **Improved Error Handling**: Clear validation error messages for debugging
+
 ### v1.1.0 - Performance Optimization Release
 - **Parallel Execution**: ServiceNow and GTI queries now run concurrently when both are needed
 - **40% Performance Improvement**: Significant reduction in total processing time
@@ -431,6 +479,8 @@ The system provides detailed logging at each step:
 
 ### Future Enhancements
 - [x] **Performance optimizations** - Parallel execution implemented
+- [x] **Pydantic integration** - Structured data validation implemented
+- [x] **Visualization agent** - Data visualization capabilities added
 - [ ] Support for additional MCP servers
 - [ ] Enhanced error recovery
 - [ ] Additional security features

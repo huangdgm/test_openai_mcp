@@ -1,0 +1,13 @@
+# Documentation
+
+> The documentation for where to find the runbooks.
+
+This documentation contains different sections to help LLMs to understand which runbooks are available, what they are for, and how to find them.
+
+## Section name
+
+- [Link title](https://link_url): Optional link details
+
+## Optional
+
+- [Link title](https://link_url)

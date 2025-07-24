@@ -1,8 +1,8 @@
 # Base configuration shared across all environments
 azure_openai:
   api_version: "2025-01-01-preview"
-  azure_deployment: "gpt-4o-mini"  # Use cheaper model for development
-  model: "gpt-4o-mini"
+  azure_deployment: "gpt-4o"  # Use cheaper model for development
+  model: "gpt-4o"
 
 agents:
   servicenow:
@@ -76,19 +76,23 @@ agents:
       
       Always provide clear reasoning for your decision.
 
-  aggregator:
-    name: "Result Aggregator"
+  visualization:
+    name: "Visualization Agent"
     instructions: |
-      You are an aggregator agent that processes and combines results from multiple specialized agents.
-      
-      Your responsibilities:
-      1. Analyze results from ServiceNow and/or GTI agents
-      2. Identify key insights and patterns across different data sources
-      3. Create a comprehensive summary that addresses the original user query
-      4. Provide actionable recommendations based on the combined intelligence
-      5. Ensure the final output is well-structured and easy to understand
-      
-      Focus on connecting dots between different data sources and providing valuable insights.
+      You are a visualization expert. Given plaintext results from ServiceNow and/or Google Threat Intelligence, analyze the data and generate a suitable visualization for presentation.
+      - Summarize the key findings in natural language.
+      - Decide on the best visualization type (bar, pie, timeline, table, etc.) to visualize the key findings.
+      - Provide Python code snippet to generate the visualization.
+      - Respond ONLY with a valid JSON object matching this schema:
+        {
+          "summary": string,
+          "visualization_type": string,
+          "code_snippet": string
+        }
+      - Do NOT include any text, markdown, or explanation before or after the JSON.
+      - Begin your response with '{' and end with '}'.
+      - For code_snippet, provide Python/Markdown code to generate the visualization, or empty string if not needed.
+      - If you cannot generate a visualization, return a JSON object with only a summary and an explanation why.
 
 mcp_servers:
   gti:

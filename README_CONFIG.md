@@ -158,18 +158,6 @@ staging:
 2. Create helper methods in `ConfigManager` if needed
 3. Access using `config_manager.get("section.key")`
 
-## 📋 Requirements
-
-Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-Required packages:
-- `PyYAML>=6.0` - YAML configuration parsing
-- `python-dotenv>=1.0.0` - Environment variable management
-- `openai>=1.0.0` - Azure OpenAI client
-
 ## 🧪 Testing the Configuration
 
 You can test the configuration system by running your main script with different environments:
@@ -193,27 +181,5 @@ This will demonstrate:
 - **Sensitive Data**: Keep API keys and endpoints in environment variables
 - **Configuration Files**: Don't commit sensitive data to configuration files
 - **Environment Variables**: Use `.env` files for local development
-
-## 📝 Migration from Old System
-
-The old Python dict-based configuration has been replaced with YAML files:
-
-**Old (agent_configs.py):**
-```python
-SERVICENOW_AGENT_CONFIG = {
-    "name": "ServiceNow Specialist",
-    "instructions": "...",
-    "model": "gpt-4o-mini"
-}
-```
-
-**New (base.yaml):**
-```yaml
-agents:
-  servicenow:
-    name: "ServiceNow Specialist"
-    instructions: |
-      Agent instructions...
-```
 
 The new system provides better organization, environment support, and maintainability. 
