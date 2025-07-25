@@ -24,11 +24,6 @@ The system implements a microservices-style architecture with specialized AI age
               └─────────────────┘                    └─────────────────┘
                         │                                         │
                         └─────────────────┬───────────────────────┘
-                                          ▼
-                              ┌─────────────────┐
-                              │  Aggregator     │
-                              │  Agent          │
-                              └─────────────────┘
                                           │
                                           ▼
                               ┌─────────────────┐
