@@ -11,3 +11,7 @@ wheels/
 
 # Environment variables
 .env
+
+test.py
+test.ipynb
+test1.ipynb

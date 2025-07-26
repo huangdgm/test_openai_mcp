@@ -12,14 +12,4 @@ def get_orchestrator_agent(openai_client):
             model=config_manager.get("azure_openai.model"),
             openai_client=openai_client
         )
-    )
-
-orchestrator_agent = Agent(
-    name=config_manager.get("agents.orchestrator.name"),
-    instructions=config_manager.get("agents.orchestrator.instructions"),
-    output_type=ServiceDecision,
-    model=OpenAIChatCompletionsModel(
-        model=config_manager.get("azure_openai.model"),
-        openai_client=None  # To be injected at runtime
-    )
-) 
+    ) 
