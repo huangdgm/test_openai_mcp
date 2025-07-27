@@ -12,6 +12,9 @@ wheels/
 # Environment variables
 .env
 
+# Lab files
+labs/*.py
+
 test.py
 test.ipynb
 test1.ipynb
