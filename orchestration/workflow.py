@@ -1,6 +1,6 @@
 import time
 import asyncio
-from ai_agents import make_servicenow_agent, make_gti_agent, get_guardrail_agent, get_orchestrator_agent, get_visualization_agent
+from ai_agents import get_servicenow_agent, get_gti_agent, get_guardrail_agent, get_orchestrator_agent, get_visualization_agent
 from models import HasSensitiveInformation, ServiceDecision, ServiceNowQuery, GTIQuery, VisualizationResult
 from agents import Runner
 from agents.mcp import MCPServer
@@ -25,7 +25,7 @@ async def determine_required_services(user_query: str, openai_client) -> Service
     return decision
 
 async def query_servicenow(user_query: str, mcp_server: MCPServer, openai_client) -> List[ServiceNowQuery]:
-    servicenow_agent_with_mcp = make_servicenow_agent(mcp_server, openai_client)
+    servicenow_agent_with_mcp = get_servicenow_agent(mcp_server, openai_client)
     servicenow_result = await Runner.run(servicenow_agent_with_mcp, user_query)
     return [ServiceNowQuery(
         query=user_query,
@@ -34,7 +34,7 @@ async def query_servicenow(user_query: str, mcp_server: MCPServer, openai_client
     )]
 
 async def query_gti(user_query: str, mcp_server: MCPServer, openai_client) -> List[GTIQuery]:
-    gti_agent_with_mcp = make_gti_agent(mcp_server, openai_client)
+    gti_agent_with_mcp = get_gti_agent(mcp_server, openai_client)
     gti_result = await Runner.run(gti_agent_with_mcp, user_query)
     return [GTIQuery(
         query=user_query,
