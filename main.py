@@ -1,8 +1,8 @@
 """
 Enhanced MCP Orchestrator with Guardrail Protection
 
-This module implements a multi-agent orchestration system that can query both ServiceNow
-and Google Threat Intelligence (GTI) platforms while providing guardrail protection
+This module implements a multi-agent orchestration system that can query ServiceNow,
+Google Threat Intelligence (GTI), and OpenSearch platforms while providing guardrail protection
 against sensitive information exposure.
 
 The system consists of:
@@ -10,6 +10,7 @@ The system consists of:
 - Orchestrator Agent: Determines which services to query based on user input
 - ServiceNow Agent: Queries ServiceNow platform via MCP server
 - GTI Agent: Queries Google Threat Intelligence via MCP server
+- OpenSearch Agent: Queries OpenSearch platform via MCP server
 - Aggregator Agent: Combines and summarizes results from multiple sources
 """
 
@@ -56,13 +57,14 @@ async def main():
     Main entry point that initializes and starts the MCP servers.
     
     This function:
-    1. Starts both GTI and ServiceNow MCP servers with proper configuration
+    1. Starts GTI, ServiceNow, and OpenSearch MCP servers with proper configuration
     2. Sets up tracing for monitoring and debugging
     3. Executes the main workflow with the configured servers
     
     The servers are configured with:
     - GTI: Uses uv to run the GTI MCP server
     - ServiceNow: Uses Python virtual environment with proxy settings
+    - OpenSearch: Uses Python virtual environment for OpenSearch MCP server
     
     Example:
         >>> asyncio.run(main())
@@ -70,7 +72,7 @@ async def main():
     """
     print("🔧 Starting MCP servers...")
     
-    # Start both GTI and ServiceNow MCP servers
+    # Start GTI, ServiceNow, and OpenSearch MCP servers
     async with MCPServerStdio(
         name=config_manager.get("mcp_servers.gti.name"),
         params={
@@ -83,12 +85,19 @@ async def main():
             "command": config_manager.get("mcp_servers.servicenow.command"),
             "args": config_manager.get("mcp_servers.servicenow.args")
         }
-    ) as servicenow_server:
+    ) as servicenow_server, MCPServerStdio(
+        name=config_manager.get("mcp_servers.opensearch.name"),
+        params={
+            "command": config_manager.get("mcp_servers.opensearch.command"),
+            "args": config_manager.get("mcp_servers.opensearch.args")
+        },
+        client_session_timeout_seconds=30
+    ) as opensearch_server:
         print("✅ MCP servers started successfully!")
         trace_id = gen_trace_id()
         with trace(workflow_name="Enhanced MCP Orchestrator", trace_id=trace_id):
             print(f"🔍 View trace: https://platform.openai.com/traces/trace?trace_id={trace_id}\n")
-            await run(gti_server, servicenow_server, azure_openai_client)
+            await run(gti_server, servicenow_server, opensearch_server, azure_openai_client)
 
 if __name__ == "__main__":
     asyncio.run(main())

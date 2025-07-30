@@ -1,5 +1,0 @@
-['/Users/t832948/.local/share/uv/python/cpython-3.12.11-macos-aarch64-none/lib/python312.zip'
-'/Users/t832948/.local/share/uv/python/cpython-3.12.11-macos-aarch64-none/lib/python3.12'
-'/Users/t832948/.local/share/uv/python/cpython-3.12.11-macos-aarch64-none/lib/python3.12/lib-dynload'
-''
-'/Users/t832948/dong/repo/test_openai_mcp/.venv/lib/python3.12/site-packages']

@@ -27,6 +27,19 @@ agents:
 
       Always use the available GTI tools to gather comprehensive threat intelligence information from GTI.
 
+  opensearch:
+    name: "OpenSearch Specialist"
+    instructions: |
+      You are an OpenSearch specialist agent. Your responsibilities include:
+      - Querying OpenSearch for log data, metrics, and analytics
+      - Searching through indexed documents and logs
+      - Performing complex queries and aggregations
+      - Analyzing search results and providing insights
+      - Extracting relevant information from OpenSearch responses
+      - Formatting results in a clear, structured manner
+
+      Always use the available OpenSearch tools to ensure you provide comprehensive and accurate information from the search engine.
+
   guardrail:
     name: "Guardrail Check"
     instructions: |
@@ -56,30 +69,34 @@ agents:
       Analyze the user's request and determine if it requires:
       1. ServiceNow data (incidents, tickets, system information, etc.)
       2. Threat Intelligence data (threat actors, indicators, malware, etc.)
-      3. Both services
+      3. OpenSearch data (logs, metrics, analytics, search results, etc.)
+      4. Multiple services
       
       Consider keywords and context:
       - ServiceNow: incidents, tickets, cases, service desk, ITIL, etc.
       - GTI: threat actors, malware, indicators, APT, cyber threats, etc.
+      - OpenSearch: logs, metrics, analytics, search, queries, aggregations, etc.
       
       IMPORTANT: You must respond with a JSON object in this exact format:
       {
           "servicenow": true/false,
           "gti": true/false,
+          "opensearch": true/false,
           "reasoning": "Detailed explanation of why each service is needed or not needed"
       }
       
       Example responses:
-      - For ServiceNow only: {"servicenow": true, "gti": false, "reasoning": "Query asks for incident information which is stored in ServiceNow"}
-      - For GTI only: {"servicenow": false, "gti": true, "reasoning": "Query asks for threat intelligence about specific threat actors"}
-      - For both: {"servicenow": true, "gti": true, "reasoning": "Query asks for both incident data and threat intelligence information"}
+      - For ServiceNow only: {"servicenow": true, "gti": false, "opensearch": false, "reasoning": "Query asks for incident information which is stored in ServiceNow"}
+      - For GTI only: {"servicenow": false, "gti": true, "opensearch": false, "reasoning": "Query asks for threat intelligence about specific threat actors"}
+      - For OpenSearch only: {"servicenow": false, "gti": false, "opensearch": true, "reasoning": "Query asks for log analysis or search results from OpenSearch"}
+      - For multiple: {"servicenow": true, "gti": true, "opensearch": false, "reasoning": "Query asks for both incident data and threat intelligence information"}
       
       Always provide clear reasoning for your decision.
 
   visualization:
     name: "Visualization Agent"
     instructions: |
-      You are a visualization expert. Given plaintext results from ServiceNow and/or Google Threat Intelligence, analyze the data and generate a suitable visualization for presentation.
+      You are a visualization expert. Given plaintext results from ServiceNow, Google Threat Intelligence, and/or OpenSearch, analyze the data and generate a suitable visualization for presentation.
       - Summarize the key findings in natural language.
       - Decide on the best visualization type (bar, pie, timeline, table, etc.) to visualize the key findings.
       - Provide Python code snippet to generate the visualization.
@@ -97,10 +114,10 @@ agents:
 mcp_servers:
   gti:
     name: "GTI Server"
-    command: "/PATH/TO/.local/bin/uv"
+    command: "/PATH/TO/uv"
     args:
       - "--directory"
-      - "/PATH/TO/mcp-security/server/gti/"
+      - "/PATH/TO/mcp-security/server/gti"
       - "run"
       - "--env-file"
       - "/PATH/TO/.env"
@@ -108,11 +125,23 @@ mcp_servers:
 
   servicenow:
     name: "ServiceNow Server"
-    command: "/PATH/TO/.local/bin/uv"
+    command: "/PATH/TO/uv"
     args:
       - "--directory"
-      - "/PATH/TO/servicenow-mcp-dev/src/servicenow_mcp/"
+      - "/PATH/TO/servicenow-mcp-dev/src/servicenow_mcp"
       - "run"
       - "--env-file"
       - "/PATH/TO/.env"
-      - "cli.py" 
+      - "cli.py"
+
+  opensearch:
+    name: "OpenSearch Server"
+    command: "/PATH/TO/uv"
+    args:
+      - "--directory"
+      - "/PATH/TO/opensearch-mcp-server-py"
+      - "run"
+      - "--env-file"
+      - "/PATH/TO/.env"
+      - "-m"
+      - "mcp_server_opensearch" 

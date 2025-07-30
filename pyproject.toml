@@ -1,14 +1,41 @@
 [project]
 name = "test-openai-mcp"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.3.0"
+description = "Enhanced MCP Orchestrator with Guardrail Protection - A sophisticated multi-agent orchestration system for ServiceNow, GTI, and OpenSearch platforms"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "mcp-server-fetch>=2025.4.7",
     "openai-agents>=0.1.0",
-    "pip>=25.1.1",
     "PyYAML>=6.0",
     "python-dotenv>=1.0.0",
     "openai>=1.0.0",
+    "pydantic>=2.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/huangdgm/test-openai-mcp"
+Repository = "https://github.com/huangdgm/test-openai-mcp"
+Documentation = "https://github.com/huangdgm/test-openai-mcp/blob/main/README.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

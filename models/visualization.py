@@ -1,3 +1,10 @@
+"""
+Visualization data models for data presentation and analysis.
+
+This module contains Pydantic models for structuring visualization results
+in the enhanced MCP orchestrator system.
+"""
+
 from pydantic import BaseModel
 
 class VisualizationResult(BaseModel):
